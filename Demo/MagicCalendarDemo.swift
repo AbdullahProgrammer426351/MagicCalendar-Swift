@@ -32,6 +32,22 @@ struct ContentView: View {
 
 // MARK: - Theme Showcase
 struct ThemeShowcaseView: View {
+    @State private var selectedDate1: Date? = nil
+    @State private var selectedDates1: Set<Date> = []
+    @State private var events1: [Date: [CalendarEvent]] = [:]
+    
+    @State private var selectedDate2: Date? = nil
+    @State private var selectedDates2: Set<Date> = []
+    @State private var events2: [Date: [CalendarEvent]] = [:]
+    
+    @State private var selectedDate3: Date? = nil
+    @State private var selectedDates3: Set<Date> = []
+    @State private var events3: [Date: [CalendarEvent]] = [:]
+    
+    @State private var selectedDate4: Date? = nil
+    @State private var selectedDates4: Set<Date> = []
+    @State private var events4: [Date: [CalendarEvent]] = [:]
+    
     var body: some View {
         ScrollView {
             VStack(spacing: 30) {
@@ -40,8 +56,12 @@ struct ThemeShowcaseView: View {
                         Text("Default Theme")
                             .font(.headline)
                             .padding(.bottom, 5)
-                        CalendarView()
-                            .theme(.default)
+                        CalendarView(
+                            selectedDate: $selectedDate1,
+                            selectedDates: $selectedDates1,
+                            events: $events1,
+                            theme: .default
+                        )
                     }
                     
                     VStack {
@@ -49,8 +69,12 @@ struct ThemeShowcaseView: View {
                             .font(.headline)
                             .foregroundColor(.white)
                             .padding(.bottom, 5)
-                        CalendarView()
-                            .theme(.dark)
+                        CalendarView(
+                            selectedDate: $selectedDate2,
+                            selectedDates: $selectedDates2,
+                            events: $events2,
+                            theme: .dark
+                        )
                     }
                     .padding()
                     .background(Color.black)
@@ -62,16 +86,24 @@ struct ThemeShowcaseView: View {
                         Text("Minimal Theme")
                             .font(.headline)
                             .padding(.bottom, 5)
-                        CalendarView()
-                            .theme(.minimal)
+                        CalendarView(
+                            selectedDate: $selectedDate3,
+                            selectedDates: $selectedDates3,
+                            events: $events3,
+                            theme: .minimal
+                        )
                     }
                     
                     VStack {
                         Text("Colorful Theme")
                             .font(.headline)
                             .padding(.bottom, 5)
-                        CalendarView()
-                            .theme(.colorful)
+                        CalendarView(
+                            selectedDate: $selectedDate4,
+                            selectedDates: $selectedDates4,
+                            events: $events4,
+                            theme: .colorful
+                        )
                     }
                 }
             }

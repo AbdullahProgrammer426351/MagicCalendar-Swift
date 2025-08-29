@@ -75,10 +75,16 @@ import SwiftUI
 import MagicCalendar
 
 struct ContentView: View {
+    @State private var selectedDate: Date? = nil
+    @State private var selectedDates: Set<Date> = []
+    @State private var events: [Date: [CalendarEvent]] = [:]
+    
     var body: some View {
-        CalendarView { selectedDate in
-            print("Selected date: \(selectedDate)")
-        }
+        CalendarView(
+            selectedDate: $selectedDate,
+            selectedDates: $selectedDates,
+            events: $events
+        )
     }
 }
 ```
@@ -86,8 +92,12 @@ struct ContentView: View {
 ### Dark Theme Calendar
 
 ```swift
-CalendarView()
-    .theme(.dark)
+CalendarView(
+    selectedDate: $selectedDate,
+    selectedDates: $selectedDates,
+    events: $events,
+    theme: .dark
+)
 ```
 
 ## Advanced Usage
@@ -95,34 +105,42 @@ CalendarView()
 ### Multi-Selection Calendar
 
 ```swift
-@StateObject private var viewModel = CalendarViewModel(
-    configuration: CalendarConfiguration(selectionMode: .multiple)
-)
+@State private var selectedDate: Date? = nil
+@State private var selectedDates: Set<Date> = []
+@State private var events: [Date: [CalendarEvent]] = [:]
 
 var body: some View {
     CalendarView(
-        viewModel: viewModel,
-        onDateSelected: { date in
-            // Handle multi-selection
-        }
+        selectedDate: $selectedDate,
+        selectedDates: $selectedDates,
+        events: $events,
+        configuration: CalendarConfiguration(selectionMode: .multiple)
     )
+    
+    Text("Selected: \(selectedDates.count) dates")
 }
 ```
 
 ### Range Selection Calendar
 
 ```swift
-@StateObject private var viewModel = CalendarViewModel(
-    configuration: CalendarConfiguration(selectionMode: .range)
-)
+@State private var selectedDate: Date? = nil
+@State private var selectedDates: Set<Date> = []
+@State private var events: [Date: [CalendarEvent]] = [:]
 
 var body: some View {
-    CalendarView(viewModel: viewModel) { date in
-        // Handle range selection
-        if viewModel.selectedDates.count == 2 {
-            let dates = Array(viewModel.selectedDates).sorted()
+    VStack {
+        CalendarView(
+            selectedDate: $selectedDate,
+            selectedDates: $selectedDates,
+            events: $events,
+            configuration: CalendarConfiguration(selectionMode: .range)
+        )
+        
+        if selectedDates.count >= 2 {
+            let dates = selectedDates.sorted()
             let range = dates.first!...dates.last!
-            print("Selected range: \(range)")
+            Text("Selected range: \(DateFormatter.localizedString(from: range.lowerBound, dateStyle: .medium, timeStyle: .none)) - \(DateFormatter.localizedString(from: range.upperBound, dateStyle: .medium, timeStyle: .none))")
         }
     }
 }
@@ -131,13 +149,24 @@ var body: some View {
 ### Calendar with Events
 
 ```swift
-@StateObject private var viewModel = CalendarViewModel()
+@State private var selectedDate: Date? = nil
+@State private var selectedDates: Set<Date> = []
+@State private var events: [Date: [CalendarEvent]] = [:]
 
 var body: some View {
-    CalendarView(viewModel: viewModel)
-        .onAppear {
-            addSampleEvents()
+    CalendarView(
+        selectedDate: $selectedDate,
+        selectedDates: $selectedDates,
+        events: $events
+    )
+    .onAppear {
+        addSampleEvents()
+    }
+    .onChange(of: selectedDate) { date in
+        if let date = date {
+            addEventToDate(date)
         }
+    }
 }
 
 private func addSampleEvents() {
@@ -147,7 +176,22 @@ private func addSampleEvents() {
         color: .blue,
         type: .meeting
     )
-    viewModel.addEvent(event, to: Date())
+    let normalizedDate = Calendar.current.startOfDay(for: Date())
+    events[normalizedDate] = [event]
+}
+
+private func addEventToDate(_ date: Date) {
+    let newEvent = CalendarEvent(
+        title: "New Event",
+        date: date,
+        color: .green,
+        type: .event
+    )
+    let normalizedDate = Calendar.current.startOfDay(for: date)
+    if events[normalizedDate] == nil {
+        events[normalizedDate] = []
+    }
+    events[normalizedDate]?.append(newEvent)
 }
 ```
 
@@ -220,10 +264,12 @@ The main calendar view component.
 ```swift
 public struct CalendarView: View {
     public init(
-        viewModel: CalendarViewModel = CalendarViewModel(),
+        selectedDate: Binding<Date?>,
+        selectedDates: Binding<Set<Date>>,
+        events: Binding<[Date: [CalendarEvent]]>,
+        configuration: CalendarConfiguration = CalendarConfiguration(),
         theme: CalendarTheme = .default,
-        onDateSelected: ((Date) -> Void)? = nil,
-        onDateLongPress: ((Date) -> Void)? = nil
+        customDayView: ((CalendarDay, CalendarTheme) -> AnyView)? = nil
     )
 }
 ```

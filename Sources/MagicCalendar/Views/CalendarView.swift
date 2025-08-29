@@ -4,22 +4,34 @@ import SwiftUI
 public struct CalendarView: View {
     @ObservedObject private var viewModel: CalendarViewModel
     private let theme: CalendarTheme
-    private let onDateSelected: ((Date) -> Void)?
-    private let onDateLongPress: ((Date) -> Void)?
     private let customDayView: ((CalendarDay, CalendarTheme) -> AnyView)?
     
+    // MARK: - Required Bindings
+    @Binding private var selectedDate: Date?
+    @Binding private var selectedDates: Set<Date>
+    @Binding private var events: [Date: [CalendarEvent]]
+    
     public init(
-        viewModel: CalendarViewModel,
+        selectedDate: Binding<Date?>,
+        selectedDates: Binding<Set<Date>>,
+        events: Binding<[Date: [CalendarEvent]]>,
+        configuration: CalendarConfiguration = CalendarConfiguration(),
         theme: CalendarTheme = .default,
-        onDateSelected: ((Date) -> Void)? = nil,
-        onDateLongPress: ((Date) -> Void)? = nil,
         customDayView: ((CalendarDay, CalendarTheme) -> AnyView)? = nil
     ) {
-        self.viewModel = viewModel
+        self._selectedDate = selectedDate
+        self._selectedDates = selectedDates
+        self._events = events
         self.theme = theme
-        self.onDateSelected = onDateSelected
-        self.onDateLongPress = onDateLongPress
         self.customDayView = customDayView
+        
+        // Create view model with bindings
+        self.viewModel = CalendarViewModel(
+            selectedDate: selectedDate,
+            selectedDates: selectedDates,
+            events: events,
+            configuration: configuration
+        )
     }
     
     public var body: some View {
@@ -39,9 +51,8 @@ public struct CalendarView: View {
                 theme: theme,
                 onDateSelected: { date in
                     viewModel.selectDate(date)
-                    onDateSelected?(date)
                 },
-                onDateLongPress: onDateLongPress,
+                onDateLongPress: nil,
                 customDayView: customDayView
             )
         }
@@ -257,49 +268,19 @@ struct EventIndicatorsView: View {
 // MARK: - Calendar View Modifiers
 extension CalendarView {
     
-    /// Apply a custom theme to the calendar
-    public func theme(_ theme: CalendarTheme) -> CalendarView {
-        CalendarView(
-            viewModel: viewModel,
-            theme: theme,
-            onDateSelected: onDateSelected,
-            onDateLongPress: onDateLongPress,
-            customDayView: customDayView
-        )
-    }
-    
     /// Set custom day view renderer
     public func customDayView<Content: View>(
         @ViewBuilder _ content: @escaping (CalendarDay, CalendarTheme) -> Content
     ) -> CalendarView {
         CalendarView(
-            viewModel: viewModel,
+            selectedDate: $selectedDate,
+            selectedDates: $selectedDates,
+            events: $events,
+            configuration: viewModel.configuration,
             theme: theme,
-            onDateSelected: onDateSelected,
-            onDateLongPress: onDateLongPress,
             customDayView: { day, theme in
                 AnyView(content(day, theme))
             }
-        )
-    }
-}
-
-// MARK: - Convenience Initializers
-extension CalendarView {
-    
-    /// Create a calendar with default settings
-    public init() {
-        self.init(
-            viewModel: CalendarViewModel(),
-            theme: .default
-        )
-    }
-    
-    /// Create a calendar with custom configuration
-    public init(configuration: CalendarConfiguration, theme: CalendarTheme = .default) {
-        self.init(
-            viewModel: CalendarViewModel(configuration: configuration),
-            theme: theme
         )
     }
 }

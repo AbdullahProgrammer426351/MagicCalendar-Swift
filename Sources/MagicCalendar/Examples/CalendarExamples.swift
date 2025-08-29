@@ -5,6 +5,10 @@ import Foundation
 
 /// Basic calendar example
 public struct BasicCalendarExample: View {
+    @State private var selectedDate: Date? = nil
+    @State private var selectedDates: Set<Date> = []
+    @State private var events: [Date: [CalendarEvent]] = [:]
+    
     public init() {}
     
     public var body: some View {
@@ -13,14 +17,27 @@ public struct BasicCalendarExample: View {
                 .font(.title2)
                 .padding()
             
-            CalendarView()
-                .padding()
+            CalendarView(
+                selectedDate: $selectedDate,
+                selectedDates: $selectedDates,
+                events: $events
+            )
+            .padding()
+            
+            if let selected = selectedDate {
+                Text("Selected: \(DateFormatter.displayFormatter.string(from: selected))")
+                    .padding()
+            }
         }
     }
 }
 
 /// Dark theme calendar example
 public struct DarkThemeCalendarExample: View {
+    @State private var selectedDate: Date? = nil
+    @State private var selectedDates: Set<Date> = []
+    @State private var events: [Date: [CalendarEvent]] = [:]
+    
     public init() {}
     
     public var body: some View {
@@ -30,9 +47,13 @@ public struct DarkThemeCalendarExample: View {
                 .foregroundColor(.white)
                 .padding()
             
-            CalendarView()
-                .theme(.dark)
-                .padding()
+            CalendarView(
+                selectedDate: $selectedDate,
+                selectedDates: $selectedDates,
+                events: $events,
+                theme: .dark
+            )
+            .padding()
         }
         .background(Color.black.ignoresSafeArea())
     }
@@ -40,10 +61,9 @@ public struct DarkThemeCalendarExample: View {
 
 /// Multi-selection calendar example
 public struct MultiSelectionCalendarExample: View {
-    @StateObject private var viewModel = CalendarViewModel(
-        configuration: CalendarConfiguration(selectionMode: .multiple)
-    )
-    @State private var selectedDates: [Date] = []
+    @State private var selectedDate: Date? = nil
+    @State private var selectedDates: Set<Date> = []
+    @State private var events: [Date: [CalendarEvent]] = [:]
     
     public init() {}
     
@@ -54,18 +74,14 @@ public struct MultiSelectionCalendarExample: View {
                 .padding()
             
             CalendarView(
-                viewModel: viewModel,
-                onDateSelected: { date in
-                    if let index = selectedDates.firstIndex(of: date) {
-                        selectedDates.remove(at: index)
-                    } else {
-                        selectedDates.append(date)
-                    }
-                }
+                selectedDate: $selectedDate,
+                selectedDates: $selectedDates,
+                events: $events,
+                configuration: CalendarConfiguration(selectionMode: .multiple)
             )
             .padding()
             
-            Text("Selected Dates: \\(selectedDates.count)")
+            Text("Selected Dates: \(selectedDates.count)")
                 .padding()
         }
     }
@@ -73,10 +89,9 @@ public struct MultiSelectionCalendarExample: View {
 
 /// Range selection calendar example
 public struct RangeSelectionCalendarExample: View {
-    @StateObject private var viewModel = CalendarViewModel(
-        configuration: CalendarConfiguration(selectionMode: .range)
-    )
-    @State private var selectedRange: ClosedRange<Date>?
+    @State private var selectedDate: Date? = nil
+    @State private var selectedDates: Set<Date> = []
+    @State private var events: [Date: [CalendarEvent]] = [:]
     
     public init() {}
     
@@ -87,18 +102,17 @@ public struct RangeSelectionCalendarExample: View {
                 .padding()
             
             CalendarView(
-                viewModel: viewModel,
-                onDateSelected: { date in
-                    if viewModel.selectedDates.count == 2 {
-                        let dates = Array(viewModel.selectedDates).sorted()
-                        selectedRange = dates.first!...dates.last!
-                    }
-                }
+                selectedDate: $selectedDate,
+                selectedDates: $selectedDates,
+                events: $events,
+                configuration: CalendarConfiguration(selectionMode: .range)
             )
             .padding()
             
-            if selectedRange != nil {
-                Text("Selected Range: \\(DateFormatter.displayFormatter.string(from: selectedRange!.lowerBound)) - \\(DateFormatter.displayFormatter.string(from: selectedRange!.upperBound))")
+            if selectedDates.count >= 2 {
+                let dates = selectedDates.sorted()
+                let range = dates.first!...dates.last!
+                Text("Selected Range: \(DateFormatter.displayFormatter.string(from: range.lowerBound)) - \(DateFormatter.displayFormatter.string(from: range.upperBound))")
                     .padding()
             }
         }
@@ -107,7 +121,9 @@ public struct RangeSelectionCalendarExample: View {
 
 /// Event calendar example
 public struct EventCalendarExample: View {
-    @StateObject private var viewModel = CalendarViewModel()
+    @State private var selectedDate: Date? = nil
+    @State private var selectedDates: Set<Date> = []
+    @State private var events: [Date: [CalendarEvent]] = [:]
     
     public init() {}
     
@@ -118,16 +134,9 @@ public struct EventCalendarExample: View {
                 .padding()
             
             CalendarView(
-                viewModel: viewModel,
-                onDateSelected: { date in
-                    // Add a random event on tap
-                    let event = CalendarEvent(
-                        title: "Event \\(Int.random(in: 1...100))",
-                        date: date,
-                        color: EventColor.allCases.randomElement() ?? .blue
-                    )
-                    viewModel.addEvent(event, to: date)
-                }
+                selectedDate: $selectedDate,
+                selectedDates: $selectedDates,
+                events: $events
             )
             .padding()
             
@@ -137,6 +146,11 @@ public struct EventCalendarExample: View {
         }
         .onAppear {
             addSampleEvents()
+        }
+        .onChange(of: selectedDate) { newValue in
+            if let date = newValue {
+                addRandomEvent(to: date)
+            }
         }
     }
     
@@ -148,20 +162,39 @@ public struct EventCalendarExample: View {
         for i in 1...5 {
             if let eventDate = calendar.date(byAdding: .day, value: i, to: today) {
                 let event = CalendarEvent(
-                    title: "Sample Event \\(i)",
+                    title: "Sample Event \(i)",
                     date: eventDate,
                     color: EventColor.allCases.randomElement() ?? .blue,
                     type: .event
                 )
-                viewModel.addEvent(event, to: eventDate)
+                let normalizedDate = Calendar.current.startOfDay(for: eventDate)
+                if events[normalizedDate] == nil {
+                    events[normalizedDate] = []
+                }
+                events[normalizedDate]?.append(event)
             }
         }
+    }
+    
+    private func addRandomEvent(to date: Date) {
+        let event = CalendarEvent(
+            title: "Event \(Int.random(in: 1...100))",
+            date: date,
+            color: EventColor.allCases.randomElement() ?? .blue
+        )
+        let normalizedDate = Calendar.current.startOfDay(for: date)
+        if events[normalizedDate] == nil {
+            events[normalizedDate] = []
+        }
+        events[normalizedDate]?.append(event)
     }
 }
 
 /// Custom day view calendar example
 public struct CustomDayViewCalendarExample: View {
-    @StateObject private var viewModel = CalendarViewModel()
+    @State private var selectedDate: Date? = nil
+    @State private var selectedDates: Set<Date> = []
+    @State private var events: [Date: [CalendarEvent]] = [:]
     
     public init() {}
     
@@ -171,11 +204,15 @@ public struct CustomDayViewCalendarExample: View {
                 .font(.title2)
                 .padding()
             
-            CalendarView(viewModel: viewModel)
-                .customDayView { day, theme in
-                    CustomDayCell(day: day, theme: theme)
-                }
-                .padding()
+            CalendarView(
+                selectedDate: $selectedDate,
+                selectedDates: $selectedDates,
+                events: $events
+            )
+            .customDayView { day, theme in
+                CustomDayCell(day: day, theme: theme)
+            }
+            .padding()
         }
     }
 }
@@ -241,9 +278,9 @@ struct HexagonShape: Shape {
 
 /// Monday first calendar example
 public struct MondayFirstCalendarExample: View {
-    @StateObject private var viewModel = CalendarViewModel(
-        configuration: CalendarConfiguration(firstDayOfWeek: .monday)
-    )
+    @State private var selectedDate: Date? = nil
+    @State private var selectedDates: Set<Date> = []
+    @State private var events: [Date: [CalendarEvent]] = [:]
     
     public init() {}
     
@@ -253,15 +290,24 @@ public struct MondayFirstCalendarExample: View {
                 .font(.title2)
                 .padding()
             
-            CalendarView(viewModel: viewModel)
-                .padding()
+            CalendarView(
+                selectedDate: $selectedDate,
+                selectedDates: $selectedDates,
+                events: $events,
+                configuration: CalendarConfiguration(firstDayOfWeek: .monday)
+            )
+            .padding()
         }
     }
 }
 
 /// Limited date range calendar example
 public struct LimitedDateRangeCalendarExample: View {
-    @StateObject private var viewModel: CalendarViewModel
+    @State private var selectedDate: Date? = nil
+    @State private var selectedDates: Set<Date> = []
+    @State private var events: [Date: [CalendarEvent]] = [:]
+    
+    private let configuration: CalendarConfiguration
     
     public init() {
         let calendar = Calendar.current
@@ -269,12 +315,10 @@ public struct LimitedDateRangeCalendarExample: View {
         let minDate = calendar.date(byAdding: .month, value: -1, to: today)!
         let maxDate = calendar.date(byAdding: .month, value: 2, to: today)!
         
-        let configuration = CalendarConfiguration(
+        self.configuration = CalendarConfiguration(
             minimumDate: minDate,
             maximumDate: maxDate
         )
-        
-        _viewModel = StateObject(wrappedValue: CalendarViewModel(configuration: configuration))
     }
     
     public var body: some View {
@@ -288,8 +332,13 @@ public struct LimitedDateRangeCalendarExample: View {
                 .foregroundColor(.secondary)
                 .padding(.bottom)
             
-            CalendarView(viewModel: viewModel)
-                .padding()
+            CalendarView(
+                selectedDate: $selectedDate,
+                selectedDates: $selectedDates,
+                events: $events,
+                configuration: configuration
+            )
+            .padding()
         }
     }
 }

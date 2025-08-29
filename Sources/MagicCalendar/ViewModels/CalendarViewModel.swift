@@ -7,18 +7,15 @@ public class CalendarViewModel: ObservableObject {
     
     // MARK: - Published Properties
     @Published public var currentMonth: CalendarMonth
-    @Published public var selectedDates: Set<Date> = []
-    @Published public var events: [Date: [CalendarEvent]] = [:]
-    @Published public var configuration: CalendarConfiguration
+    public let configuration: CalendarConfiguration
+    
+    // MARK: - Bindings
+    private let selectedDate: Binding<Date?>
+    private let selectedDates: Binding<Set<Date>>
+    private let events: Binding<[Date: [CalendarEvent]]>
     
     // MARK: - Private Properties
     private let calendar = Calendar.current
-    private let dateFormatter: DateFormatter = {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "MMMM yyyy"
-        return formatter
-    }()
-    
     private let monthFormatter: DateFormatter = {
         let formatter = DateFormatter()
         formatter.dateFormat = "MMMM"
@@ -28,8 +25,14 @@ public class CalendarViewModel: ObservableObject {
     // MARK: - Initialization
     public init(
         initialDate: Date = Date(),
+        selectedDate: Binding<Date?>,
+        selectedDates: Binding<Set<Date>>,
+        events: Binding<[Date: [CalendarEvent]]>,
         configuration: CalendarConfiguration = CalendarConfiguration()
     ) {
+        self.selectedDate = selectedDate
+        self.selectedDates = selectedDates
+        self.events = events
         self.configuration = configuration
         self.currentMonth = CalendarMonth(date: initialDate, weeks: [], monthName: "", year: 0)
         generateMonth(for: initialDate)
@@ -65,13 +68,16 @@ public class CalendarViewModel: ObservableObject {
         
         switch configuration.selectionMode {
         case .single:
-            selectedDates = [date]
+            selectedDate.wrappedValue = date
+            selectedDates.wrappedValue = [date]
         case .multiple:
-            if selectedDates.contains(date) {
-                selectedDates.remove(date)
+            var currentDates = selectedDates.wrappedValue
+            if currentDates.contains(date) {
+                currentDates.remove(date)
             } else {
-                selectedDates.insert(date)
+                currentDates.insert(date)
             }
+            selectedDates.wrappedValue = currentDates
         case .range:
             handleRangeSelection(date)
         case .none:
@@ -85,10 +91,12 @@ public class CalendarViewModel: ObservableObject {
     /// Add an event to a specific date
     public func addEvent(_ event: CalendarEvent, to date: Date) {
         let normalizedDate = calendar.startOfDay(for: date)
-        if events[normalizedDate] == nil {
-            events[normalizedDate] = []
+        var currentEvents = events.wrappedValue
+        if currentEvents[normalizedDate] == nil {
+            currentEvents[normalizedDate] = []
         }
-        events[normalizedDate]?.append(event)
+        currentEvents[normalizedDate]?.append(event)
+        events.wrappedValue = currentEvents
         
         // Regenerate current month to reflect event changes
         generateMonth(for: currentMonth.date)
@@ -97,10 +105,12 @@ public class CalendarViewModel: ObservableObject {
     /// Remove an event from a specific date
     public func removeEvent(_ event: CalendarEvent, from date: Date) {
         let normalizedDate = calendar.startOfDay(for: date)
-        events[normalizedDate]?.removeAll { $0.id == event.id }
-        if events[normalizedDate]?.isEmpty == true {
-            events[normalizedDate] = nil
+        var currentEvents = events.wrappedValue
+        currentEvents[normalizedDate]?.removeAll { $0.id == event.id }
+        if currentEvents[normalizedDate]?.isEmpty == true {
+            currentEvents[normalizedDate] = nil
         }
+        events.wrappedValue = currentEvents
         
         // Regenerate current month to reflect event changes
         generateMonth(for: currentMonth.date)
@@ -109,14 +119,7 @@ public class CalendarViewModel: ObservableObject {
     /// Get events for a specific date
     public func events(for date: Date) -> [CalendarEvent] {
         let normalizedDate = calendar.startOfDay(for: date)
-        return events[normalizedDate] ?? []
-    }
-    
-    /// Update configuration
-    public func updateConfiguration(_ newConfiguration: CalendarConfiguration) {
-        configuration = newConfiguration
-        selectedDates.removeAll() // Clear selections when configuration changes
-        generateMonth(for: currentMonth.date)
+        return events.wrappedValue[normalizedDate] ?? []
     }
     
     // MARK: - Private Methods
@@ -156,7 +159,7 @@ public class CalendarViewModel: ObservableObject {
                 let monthComponent = calendar.component(.month, from: currentDate)
                 let isCurrentMonth = monthComponent == month
                 let isToday = calendar.isDate(currentDate, inSameDayAs: Date())
-                let isSelected = selectedDates.contains(where: { calendar.isDate($0, inSameDayAs: currentDate) })
+                let isSelected = selectedDates.wrappedValue.contains(where: { calendar.isDate($0, inSameDayAs: currentDate) })
                 let isWeekend = calendar.isDateInWeekend(currentDate)
                 let dayEvents = events(for: currentDate)
                 
@@ -219,26 +222,30 @@ public class CalendarViewModel: ObservableObject {
     }
     
     private func handleRangeSelection(_ date: Date) {
-        if selectedDates.isEmpty {
+        var currentDates = selectedDates.wrappedValue
+        
+        if currentDates.isEmpty {
             // First selection in range
-            selectedDates.insert(date)
-        } else if selectedDates.count == 1 {
+            currentDates.insert(date)
+        } else if currentDates.count == 1 {
             // Second selection - complete the range
-            let existingDate = selectedDates.first!
+            let existingDate = currentDates.first!
             let startDate = min(date, existingDate)
             let endDate = max(date, existingDate)
             
-            selectedDates.removeAll()
+            currentDates.removeAll()
             var currentDate = startDate
             
             while calendar.compare(currentDate, to: endDate, toGranularity: .day) != .orderedDescending {
-                selectedDates.insert(currentDate)
+                currentDates.insert(currentDate)
                 currentDate = calendar.date(byAdding: .day, value: 1, to: currentDate) ?? currentDate
             }
         } else {
             // Reset range selection
-            selectedDates = [date]
+            currentDates = [date]
         }
+        
+        selectedDates.wrappedValue = currentDates
     }
 }
 

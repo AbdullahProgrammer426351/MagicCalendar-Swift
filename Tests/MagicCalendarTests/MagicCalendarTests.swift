@@ -5,10 +5,19 @@ import Foundation
 @Test("Calendar View Model Initialization")
 @MainActor
 func testCalendarViewModelInitialization() async throws {
-    let viewModel = CalendarViewModel()
-    #expect(viewModel.selectedDates.isEmpty)
-    #expect(viewModel.events.isEmpty)
+    // Create bindings for testing
+    var selectedDate: Date? = nil
+    var selectedDates: Set<Date> = []
+    var events: [Date: [CalendarEvent]] = [:]
+    
+    let viewModel = CalendarViewModel(
+        selectedDate: .constant(selectedDate),
+        selectedDates: .constant(selectedDates),
+        events: .constant(events)
+    )
+    
     #expect(viewModel.currentMonth.weeks.count > 0)
+    #expect(viewModel.configuration.selectionMode == .single)
 }
 
 @Test("Calendar Configuration")
