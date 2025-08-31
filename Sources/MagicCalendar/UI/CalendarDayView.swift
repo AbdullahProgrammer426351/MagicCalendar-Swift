@@ -31,7 +31,7 @@ struct CalendarDayView: View {
                     .contentShape(Rectangle())
                 
                 // Step 2: Middle layer indicator (circle, rectangle, ring)
-                if !isSelected, let indicator = events.first?.indicator, indicator.isBackgroundType {
+                if !isSelected, let indicator = events.first?.indicator, indicator.isBackgroundType, isInCurrentMonth {
                     EventIndicatorView(indicator: indicator)
                         .frame(width: 38, height: 38)
                 }
@@ -44,14 +44,14 @@ struct CalendarDayView: View {
                     )
                 
                 // ✅ Step 4: Event icon stays in center (unchanged)
-                if let icon = events.first?.icon {
+                if let icon = events.first?.icon, isInCurrentMonth {
                     EventIconView(eventIcon: icon)
                 }
             }
             .frame(width: width / 7, height: 38)
             
             // ✅ Step 5: Foreground indicators ONLY at bottom
-            if let indicator = events.first?.indicator, indicator.isForegroundType {
+            if let indicator = events.first?.indicator, indicator.isForegroundType, isInCurrentMonth {
                 EventIndicatorView(indicator: indicator)
                     .frame(height: 6)
             } else {
@@ -216,6 +216,8 @@ struct BoxStyleView: View {
                         dash: [0, dotSize * 2] // spacing between dots
                     )
                 )
+        case .clear:
+            EmptyView()
         }
     }
 }

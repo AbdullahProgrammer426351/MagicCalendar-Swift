@@ -115,6 +115,7 @@ struct RenderIcon: View {
         switch icon {
         case .system(let name):
             Image(systemName: name)
+                .fontWeight(.bold)
                 .foregroundColor(tint)
         case .asset(let name):
             Image(name)

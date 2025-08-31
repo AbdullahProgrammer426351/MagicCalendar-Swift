@@ -7,9 +7,11 @@
 
 import Foundation
 
-public struct MyModel{
-    let name:String
+public struct MyModel {
+    public let name: String   // make this public if you want external access
+
     public init(name: String) {
         self.name = name
     }
 }
+

@@ -10,6 +10,7 @@ import SwiftUI
 
 /// Calendar date box styles (equivalent to Kotlin sealed class)
 public enum DateBoxStyle {
+    case clear
     case filledCircle(color: Color)
     case filledRectangle(color: Color, cornerRadius: CGFloat = 2)
     case borderedCircle(borderColor: Color, borderWidth: CGFloat = 2)

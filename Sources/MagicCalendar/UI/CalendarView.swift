@@ -92,22 +92,32 @@ public struct CalendarView: View {
                 onPrevious: {
                     currentPage -= 1
                     updateSelectedDate(byMonths: -1)
-                    recalcHeight(for: currentPage, startPage: startPage)
+                    withAnimation(.easeInOut){
+                        recalcHeight(for: currentPage, startPage: startPage)
+                    }
                 },
                 onNext: {
                     currentPage += 1
                     updateSelectedDate(byMonths: 1)
-                    recalcHeight(for: currentPage, startPage: startPage)
+                    withAnimation(.easeInOut){
+                        recalcHeight(for: currentPage, startPage: startPage)
+                    }
                 },
                 accentColor: headerAccentColor,
                 headerFontStyle: headerFontStyle
             )
+            .padding(.horizontal, 10)
 
-            VStack(spacing:2) {
+            VStack(spacing: 2) {
                 if swipeEnabled {
                     TabView(selection: $currentPage) {
                         ForEach((0..<1000), id: \.self) { page in
-                            let monthDate = Calendar.current.date(byAdding: .month, value: page - startPage, to: Date()) ?? Date()
+                            let monthDate = Calendar.current.date(
+                                byAdding: .month,
+                                value: page - startPage,
+                                to: Date()
+                            ) ?? Date()
+                            
                             CalendarGridView(
                                 monthDate: monthDate,
                                 selectedDate: $selectedDate,
@@ -118,7 +128,7 @@ public struct CalendarView: View {
                                 activeTextColor: activeTextColor,
                                 inactiveTextColor: inactiveTextColor,
                                 isExpanded: isExpanded,
-                                selectedRowIndex: 0, // row index recalculated later
+                                selectedRowIndex: 0,
                                 verticalSpacing: 5,
                                 topSpacing: topSpacing,
                                 daysBarColor: daysBarColor,
@@ -128,16 +138,47 @@ public struct CalendarView: View {
                         }
                     }
                     .onChange(of: currentPage) { newPage in
-                        if let newDate = Calendar.current.date(byAdding: .month, value: newPage - startPage, to: Date()) {
+                        if let newDate = Calendar.current.date(
+                            byAdding: .month,
+                            value: newPage - startPage,
+                            to: Date()
+                        ) {
                             selectedDate = newDate
                         }
-                        // 👇 recalc after page is set, with animation
                         withAnimation(.easeInOut) {
                             recalcHeight(for: newPage, startPage: startPage)
                         }
                     }
-                    .frame(height: calculatedHeight) // 👈 use state-driven height
+                    .frame(height: calculatedHeight)
                     .tabViewStyle(PageTabViewStyle(indexDisplayMode: .never))
+                    .background(bgStyle)
+                    .clipShape(RoundedRectangle(cornerRadius: 15))
+                    
+                } else {
+                    // ✅ Show only current page's grid without TabView
+                    let monthDate = Calendar.current.date(
+                        byAdding: .month,
+                        value: currentPage - startPage,
+                        to: Date()
+                    ) ?? Date()
+                    
+                    CalendarGridView(
+                        monthDate: monthDate,
+                        selectedDate: $selectedDate,
+                        events: events,
+                        selectedDayTextColor: selectedDayTextColor,
+                        dateBoxStyle: dateBoxStyle,
+                        selectedDateBoxStyle: selectedDateBoxStyle,
+                        activeTextColor: activeTextColor,
+                        inactiveTextColor: inactiveTextColor,
+                        isExpanded: isExpanded,
+                        selectedRowIndex: 0,
+                        verticalSpacing: 5,
+                        topSpacing: topSpacing,
+                        daysBarColor: daysBarColor,
+                        daysNameFormat: daysNameFormat
+                    )
+                    .frame(height: calculatedHeight)
                     .background(bgStyle)
                     .clipShape(RoundedRectangle(cornerRadius: 15))
                 }
@@ -156,6 +197,7 @@ public struct CalendarView: View {
                     .padding(8)
                 }
             }
+
         }
         .onAppear {
             recalcHeight(for: currentPage, startPage: startPage)
@@ -170,7 +212,7 @@ public struct CalendarView: View {
         let visibleRows = isExpanded ? totalRows : 1
         let rowHeight = UIScreen.main.bounds.width / 7
         calculatedHeight = isExpanded
-            ? (rowHeight + 10) * CGFloat(visibleRows) - 5 + topSpacing
+            ? (rowHeight + 10) * CGFloat(visibleRows) - 5 + (topSpacing + 20)
             : (rowHeight + 30 + topSpacing)
     }
     
