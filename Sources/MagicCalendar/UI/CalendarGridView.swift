@@ -32,6 +32,7 @@ struct CalendarGridView: View {
             return weeks
         } else {
             let index = max(0, selectedRowIndex)
+            print("Selected row index here is -- \(selectedRowIndex)")
             return [weeks[index]]
         }
     }

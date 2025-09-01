@@ -9,7 +9,7 @@
 import SwiftUI
 
 public enum EventIcon {
-    case resource(name: String, position: Alignment = .topTrailing, padding:CGFloat = 3)
-    case system(name: String, position: Alignment = .topTrailing, padding:CGFloat = 3)
-    case custom(content: () -> AnyView, position: Alignment = .topTrailing, padding:CGFloat = 3)
+    case resource(name: String, position: Alignment = .topTrailing, padding:CGFloat = 1)
+    case system(name: String, position: Alignment = .topTrailing, padding:CGFloat = 1)
+    case custom(content: () -> AnyView, position: Alignment = .topTrailing, padding:CGFloat = 1)
 }

@@ -11,7 +11,10 @@ public struct CalendarView: View {
     @State private var currentPage: Int = 500
     @Binding private var selectedDate: Date
     @State var isExpanded: Bool = true
-    @State private var calculatedHeight: CGFloat = 0   // 👈 independent state
+    @State private var calculatedHeight: CGFloat = 0
+    
+    @State private var selectedRowIndex: Int = 0
+
     
     let events: [Event]
     let headerStyle: HeaderStyle
@@ -128,7 +131,7 @@ public struct CalendarView: View {
                                 activeTextColor: activeTextColor,
                                 inactiveTextColor: inactiveTextColor,
                                 isExpanded: isExpanded,
-                                selectedRowIndex: 0,
+                                selectedRowIndex: selectedRowIndex,
                                 verticalSpacing: 5,
                                 topSpacing: topSpacing,
                                 daysBarColor: daysBarColor,
@@ -172,7 +175,7 @@ public struct CalendarView: View {
                         activeTextColor: activeTextColor,
                         inactiveTextColor: inactiveTextColor,
                         isExpanded: isExpanded,
-                        selectedRowIndex: 0,
+                        selectedRowIndex: selectedRowIndex,
                         verticalSpacing: 5,
                         topSpacing: topSpacing,
                         daysBarColor: daysBarColor,
@@ -208,13 +211,25 @@ public struct CalendarView: View {
     private func recalcHeight(for page: Int, startPage: Int) {
         let monthDate = Calendar.current.date(byAdding: .month, value: page - startPage, to: Date()) ?? Date()
         let weeks = getWeeksInMonth(monthDate)
+
+        // ✅ find which row contains the selectedDate
+        let rowIndex = weeks.firstIndex { week in
+            week.contains { date in
+                Calendar.current.isDate(date, inSameDayAs: selectedDate)
+            }
+        } ?? 0
+        
+        selectedRowIndex = rowIndex   // 👈 update state
+        
         let totalRows = (weeks.count - 1)
         let visibleRows = isExpanded ? totalRows : 1
         let rowHeight = UIScreen.main.bounds.width / 7
+        
         calculatedHeight = isExpanded
             ? (rowHeight + 10) * CGFloat(visibleRows) - 5 + (topSpacing + 20)
             : (rowHeight + 30 + topSpacing)
     }
+
     
     private func updateSelectedDate(byMonths months: Int) {
         if let newDate = Calendar.current.date(byAdding: .month, value: months, to: selectedDate) {

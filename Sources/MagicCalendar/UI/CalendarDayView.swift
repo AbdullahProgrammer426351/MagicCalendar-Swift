@@ -23,39 +23,51 @@ struct CalendarDayView: View {
     var body: some View {
         let day = Calendar.current.component(.day, from: date)
         
-        VStack(spacing: 2) { // 👈 indicator sits below
+        VStack(spacing: 2) {
             ZStack {
-                // Step 1: Background box
-                BoxStyleView(style: isSelected ? selectedDateBoxStyle : dateBoxStyle)
-                    .frame(width: 38, height: 38)
-                    .contentShape(Rectangle())
-                
-                // Step 2: Middle layer indicator (circle, rectangle, ring)
-                if !isSelected, let indicator = events.first?.indicator, indicator.isBackgroundType, isInCurrentMonth {
+                // 1. Event background indicator (only if not selected)
+                if let indicator = events.first?.indicator, indicator.isBackgroundType, isInCurrentMonth, !isSelected {
                     EventIndicatorView(indicator: indicator)
                         .frame(width: 38, height: 38)
+                } else {
+                    // 2. Normal background box (when not selected)
+                    if !isSelected {
+                        BoxStyleView(style: dateBoxStyle)
+                            .frame(width: 38, height: 38)
+                    }
+                    
+                    // 5. Selection overlay (always drawn last so it's above everything else)
+                    if isSelected {
+                        BoxStyleView(style: selectedDateBoxStyle)
+                            .frame(width: 38, height: 38)
+                    }
                 }
                 
-                // Step 3: Date text
+                
+                
+                // 3. Text (day number)
                 Text("\(day)")
                     .foregroundColor(
                         isSelected ? selectedDayTextColor :
                             (isInCurrentMonth ? (events.first?.eventColor ?? activeTextColor) : inactiveTextColor)
                     )
                 
-                // ✅ Step 4: Event icon stays in center (unchanged)
+                // 4. Event icon (center)
                 if let icon = events.first?.icon, isInCurrentMonth {
                     EventIconView(eventIcon: icon)
                 }
+                
+                
             }
             .frame(width: width / 7, height: 38)
+
             
-            // ✅ Step 5: Foreground indicators ONLY at bottom
+            // ✅ Foreground indicators shown ONLY at bottom
             if let indicator = events.first?.indicator, indicator.isForegroundType, isInCurrentMonth {
                 EventIndicatorView(indicator: indicator)
                     .frame(height: 6)
             } else {
-                Spacer().frame(height: 6) // keeps alignment
+                Spacer().frame(height: 6) // keeps alignment consistent
             }
         }
         .frame(width: width / 7)
@@ -67,6 +79,7 @@ struct CalendarDayView: View {
         }
     }
 }
+
 
 
 // MARK: - Helpers
