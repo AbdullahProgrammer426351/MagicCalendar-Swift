@@ -46,7 +46,7 @@ struct CalendarDayView: View {
                 
                 
                 // 3. Text (day number)
-                Text("\(day)")
+                Text(day.localizedString())
                     .foregroundColor(
                         isSelected ? selectedDayTextColor :
                             (isInCurrentMonth ? (events.first?.eventColor ?? activeTextColor) : inactiveTextColor)
