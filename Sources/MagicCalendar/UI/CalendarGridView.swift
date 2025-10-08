@@ -83,19 +83,25 @@ struct CalendarGridView: View {
     func getLocalizedWeekDays(format: String) -> [String] {
         let formatter = DateFormatter()
         formatter.locale = Locale.current
-        formatter.dateFormat = format
-        
-        var symbols: [String] = []
+
         let calendar = Calendar.current
-        
-        // Start from Sunday (1) through Saturday (7) in the current calendar
-        for weekday in calendar.weekdaySymbols.indices {
-            let weekdayDate = calendar.date(from: DateComponents(weekday: weekday + 1))!
-            symbols.append(formatter.string(from: weekdayDate))
+        var symbols: [String]
+
+        // Use standaloneShortWeekdaySymbols or shortWeekdaySymbols
+        switch format {
+        case "EE", "EEE":
+            symbols = formatter.shortWeekdaySymbols
+        case "E", "EEEE":
+            symbols = formatter.weekdaySymbols
+        default:
+            symbols = formatter.shortStandaloneWeekdaySymbols
         }
-        
-        return symbols
+
+        // Reorder symbols based on the calendar’s first weekday
+        let firstWeekdayIndex = calendar.firstWeekday - 1 // Sunday = 1 in most calendars
+        return Array(symbols[firstWeekdayIndex...] + symbols[..<firstWeekdayIndex])
     }
+
 
     
     
