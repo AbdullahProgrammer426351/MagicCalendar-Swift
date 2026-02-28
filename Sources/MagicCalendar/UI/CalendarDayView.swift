@@ -20,6 +20,20 @@ struct CalendarDayView: View {
     let width: CGFloat
     let onClick: () -> Void
     
+    init(date: Date, isSelected: Bool, events: [Event], isInCurrentMonth: Bool, selectedDayTextColor: Color, dateBoxStyle: DateBoxStyle, selectedDateBoxStyle: DateBoxStyle, activeTextColor: Color, inactiveTextColor: Color, width: CGFloat, respectSelection:Bool, onClick: @escaping () -> Void) {
+        self.date = date
+        self.isSelected = respectSelection && isSelected
+        self.events = events
+        self.isInCurrentMonth = isInCurrentMonth
+        self.selectedDayTextColor = selectedDayTextColor
+        self.dateBoxStyle = dateBoxStyle
+        self.selectedDateBoxStyle = selectedDateBoxStyle
+        self.activeTextColor = activeTextColor
+        self.inactiveTextColor = inactiveTextColor
+        self.width = width
+        self.onClick = onClick
+    }
+    
     var body: some View {
         let day = Calendar.current.component(.day, from: date)
         

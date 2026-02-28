@@ -10,7 +10,7 @@ import SwiftUI
 struct CalendarGridView: View {
     let monthDate: Date   // 👈 NEW: month to display
     @Binding var selectedDate: Date
-    let events: [Event]
+    let eventsByDay: [Date: [Event]]
     let selectedDayTextColor: Color
     let dateBoxStyle: DateBoxStyle
     let selectedDateBoxStyle: DateBoxStyle
@@ -22,6 +22,8 @@ struct CalendarGridView: View {
     let topSpacing: CGFloat
     let daysBarColor: Color
     let daysNameFormat:String
+    let respectSelection:Bool
+    let onDateTap: (Date) -> Void
 
     private var weeks: [[Date]] {
         getWeeksInMonth(monthDate) // 👈 build weeks for this month
@@ -31,48 +33,50 @@ struct CalendarGridView: View {
         if isExpanded {
             return weeks
         } else {
-            let index = max(0, selectedRowIndex)
-            print("Selected row index here is -- \(selectedRowIndex)")
+            guard !weeks.isEmpty else { return [] }
+            let index = min(max(0, selectedRowIndex), weeks.count - 1)
             return [weeks[index]]
         }
     }
 
     var body: some View {
-        ScrollView {
-            GeometryReader { g in
-                LazyVStack(spacing: verticalSpacing) {
-                    // Day headers
-                    HStack(spacing:0) {
-                        ForEach(getLocalizedWeekDays(format: daysNameFormat), id: \.self) { day in
-                            Text(String(day.prefix(3)))
-                                .frame(maxWidth: .infinity)
-                                .fontWeight(.bold)
-                                .foregroundColor(daysBarColor)
-                        }
+        GeometryReader { g in
+            VStack(spacing: verticalSpacing) {
+                // Day headers
+                HStack(spacing: 0) {
+                    ForEach(getLocalizedWeekDays(format: daysNameFormat), id: \.self) { day in
+                        Text(String(day.prefix(3)))
+                            .frame(maxWidth: .infinity)
+                            .fontWeight(.bold)
+                            .foregroundColor(daysBarColor)
                     }
-                    .padding(.top, topSpacing)
+                }
+                .padding(.top, topSpacing)
 
-                    // Weeks
-                    ForEach(displayWeeks, id: \.self) { week in
-                        HStack(spacing: 0) {
-                            ForEach(week, id: \.self) { date in
-                                CalendarDayView(
-                                    date: date,
-                                    isSelected: Calendar.current.isDate(date, inSameDayAs: selectedDate),
-                                    events: events.filter { Calendar.current.isDate($0.date, inSameDayAs: date) },
-                                    isInCurrentMonth: Calendar.current.isDate(date, equalTo: monthDate, toGranularity: .month), // 👈 compare with monthDate now
-                                    selectedDayTextColor: selectedDayTextColor,
-                                    dateBoxStyle: dateBoxStyle,
-                                    selectedDateBoxStyle: selectedDateBoxStyle,
-                                    activeTextColor: activeTextColor,
-                                    inactiveTextColor: inactiveTextColor,
-                                    width: g.size.width
-                                ) {
-                                    selectedDate = date
-                                }
-                                .frame(maxWidth: .infinity)
-                                .aspectRatio(1, contentMode: .fit)
+                // Weeks
+                ForEach(displayWeeks, id: \.self) { week in
+                    HStack(spacing: 0) {
+                        ForEach(week, id: \.self) { date in
+                            let dayEvents = eventsByDay[date.strippedTime()] ?? []
+                            
+                            CalendarDayView(
+                                date: date,
+                                isSelected: Calendar.current.isDate(date, inSameDayAs: selectedDate),
+                                events: dayEvents,
+                                isInCurrentMonth: Calendar.current.isDate(date, equalTo: monthDate, toGranularity: .month), // 👈 compare with monthDate now
+                                selectedDayTextColor: selectedDayTextColor,
+                                dateBoxStyle: dateBoxStyle,
+                                selectedDateBoxStyle: selectedDateBoxStyle,
+                                activeTextColor: activeTextColor,
+                                inactiveTextColor: inactiveTextColor,
+                                width: g.size.width, respectSelection: respectSelection
+                            ) {
+                                let tappedDate = date.strippedTime()
+                                onDateTap(tappedDate)
+                                selectedDate = tappedDate
                             }
+                            .frame(maxWidth: .infinity)
+                            .aspectRatio(1, contentMode: .fit)
                         }
                     }
                 }
